@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { BarChart3, Bot, Search, TrendingUp, Users, Shield, ArrowRight, Check, Star, Zap, Target, DollarSign, ChevronDown } from 'lucide-react';
 
 interface LandingProps {
   onEnterApp: () => void;
+  onSignIn?: () => void;
+  onSignUp?: () => void;
 }
 
-const Landing: React.FC<LandingProps> = ({ onEnterApp }) => {
+const Landing: React.FC<LandingProps> = ({ onEnterApp, onSignIn, onSignUp }) => {
   const features = [
     {
       icon: BarChart3,
@@ -228,8 +230,14 @@ const Landing: React.FC<LandingProps> = ({ onEnterApp }) => {
   );
 
   const handleAuthAction = (action: 'signin' | 'signup') => {
-    // For demo purposes, both signin and signup will enter the app
-    onEnterApp();
+    if (action === 'signin' && onSignIn) {
+      onSignIn();
+    } else if (action === 'signup' && onSignUp) {
+      onSignUp();
+    } else {
+      // Fallback to entering the app if no specific handlers provided
+      onEnterApp();
+    }
   };
 
   return (

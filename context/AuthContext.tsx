@@ -1,237 +1,125 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  FC,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { AuthAPI, TokenManager } from '../lib/authApi';
 
-export interface User {
+interface User {
   id: string;
   email: string;
   first_name?: string;
   last_name?: string;
-  [key: string]: unknown;
+  is_active: boolean;
+  is_verified: boolean;
 }
 
-interface AuthContextValue {
+interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, first_name?: string, last_name?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
-  signOut: () => void;
-  error: string | null;
-  clearError: () => void;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = (): AuthContextValue => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within <AuthProvider>');
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return ctx;
+  return context;
 };
 
-export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-  // Check for existing session on app load
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthenticated = !!user;
+
+  // Check if user is already logged in on app start
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      const storedUser = localStorage.getItem('user');
+    const checkAuthStatus = async () => {
+      const accessToken = TokenManager.getAccessToken();
       
-      if (token && storedUser) {
+      if (accessToken) {
         try {
-          setUser(JSON.parse(storedUser));
+          const userData = await AuthAPI.getCurrentUser(accessToken);
+          setUser(userData);
         } catch (error) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
-          setUser(null);
+          console.error('Failed to get user data:', error);
+          // Token might be expired, clear it
+          TokenManager.clearTokens();
         }
       }
-      setLoading(false);
+      
+      setIsLoading(false);
     };
 
-    checkAuth();
+    checkAuthStatus();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string) => {
     try {
-      setError(null);
-      setLoading(true);
-      
-      // Simple mock authentication - accept any email/password for demo
-      // In a real app, this would make an API call
-      if (!email || !password) {
-        throw new Error('Email and password are required');
+      const response = await AuthAPI.login({ email, password });
+      TokenManager.setTokens(response.access_token, response.refresh_token);
+      setUser(response.user);
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+    try {
+      const response = await AuthAPI.register({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      });
+      TokenManager.setTokens(response.access_token, response.refresh_token);
+      setUser(response.user);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    TokenManager.clearTokens();
+    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    const accessToken = TokenManager.getAccessToken();
+    if (accessToken) {
+      try {
+        const userData = await AuthAPI.getCurrentUser(accessToken);
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+        logout();
       }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create mock user data
-      const userData: User = {
-        id: '1',
-        email: email,
-        first_name: email.split('@')[0], // Use email prefix as first name
-        last_name: 'Demo'
-      };
-      
-      // Store mock tokens and user data
-      localStorage.setItem('access_token', 'mock-access-token');
-      localStorage.setItem('refresh_token', 'mock-refresh-token');
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Login failed. Please try again.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, first_name?: string, last_name?: string): Promise<void> => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      // Simple mock registration - accept any valid email/password for demo
-      if (!email || !password) {
-        throw new Error('Email and password are required');
-      }
-
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
-      }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create mock user data
-      const userData: User = {
-        id: '1',
-        email: email,
-        first_name: first_name || email.split('@')[0],
-        last_name: last_name || 'Demo'
-      };
-      
-      // Store mock tokens and user data
-      localStorage.setItem('access_token', 'mock-access-token');
-      localStorage.setItem('refresh_token', 'mock-refresh-token');
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Registration failed. Please try again.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const value: AuthContextType = {
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+    refreshUser,
   };
 
-  const signInWithGoogle = async (): Promise<void> => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create mock user data for Google sign-in
-      const userData: User = {
-        id: '1',
-        email: 'demo@google.com',
-        first_name: 'Google',
-        last_name: 'User'
-      };
-      
-      localStorage.setItem('access_token', 'mock-google-access-token');
-      localStorage.setItem('refresh_token', 'mock-google-refresh-token');
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Google login failed. Please try again.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signInWithFacebook = async (): Promise<void> => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create mock user data for Facebook sign-in
-      const userData: User = {
-        id: '1',
-        email: 'demo@facebook.com',
-        first_name: 'Facebook',
-        last_name: 'User'
-      };
-      
-      localStorage.setItem('access_token', 'mock-facebook-access-token');
-      localStorage.setItem('refresh_token', 'mock-facebook-refresh-token');
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Facebook login failed. Please try again.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signOut = async (): Promise<void> => {
-    try {
-      // In a real app, this would make an API call to logout
-      console.log('Signing out...');
-    } catch (e) {
-      console.warn("Logout request failed, but clearing local data");
-    } finally {
-      // Clear all auth data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      setUser(null);
-      setError(null);
-    }
-  };
-
-  const clearError = () => {
-    setError(null);
-  };
-  
-  const value: AuthContextValue = { 
-    user, 
-    loading, 
-    signIn, 
-    signUp, 
-    signInWithGoogle,
-    signInWithFacebook,
-    signOut, 
-    error, 
-    clearError 
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};

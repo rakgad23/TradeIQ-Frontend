@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import { TokenManager } from './authApi';
 // Debug logging for API configuration
 const baseURL = (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:8000';
 console.log('🔧 API Configuration:', {
@@ -11,13 +11,13 @@ console.log('🔧 API Configuration:', {
 export const api = axios.create({
   baseURL,
   withCredentials: true,
-  timeout: 10000, // 10 second timeout
+  timeout: 1000000, // never timeout but configurable
 });
 
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = TokenManager.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,6 +30,8 @@ api.interceptors.request.use(
       fullURL: `${config.baseURL}${config.url}`,
       headers: config.headers,
       data: config.data,
+      hasToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'No token',
       timestamp: new Date().toISOString()
     });
     

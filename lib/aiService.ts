@@ -12,39 +12,37 @@ export class AIService {
       message,
       conversation_id: conversationId
     };
+    // Debug: Check if token exists
+    const token = localStorage.getItem('access_token');
+    console.log('🔍 AIService.chatWithAgent - Token Check:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'No token',
+      timestamp: new Date().toISOString()
+    });
     
-    console.log('🔍 AIService.chatWithAgent - Request:', {
+    console.log('�� AIService.chatWithAgent - Request:', {
       url: '/ai-agent/chat',
       data: requestData,
       timestamp: new Date().toISOString()
     });
 
     try {
-      // Create a direct axios request without auth for testing
-      const response = await fetch(`${api.defaults.baseURL}/ai-agent/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      // Use the authenticated api instance instead of fetch
+      const response = await api.post('/ai-agent/chat', requestData);
       
       console.log('✅ AIService.chatWithAgent - Success:', {
         status: response.status,
         statusText: response.statusText,
-        data: data
+        data: response.data
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       console.error('❌ AIService.chatWithAgent - Error:', {
         message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
         timestamp: new Date().toISOString()
       });
       
@@ -60,30 +58,26 @@ export class AIService {
     });
 
     try {
-      // Create a direct fetch request without auth for testing
-      const response = await fetch(`${api.defaults.baseURL}/ai-agent/suggestions`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      // Use the authenticated api instance instead of fetch
+      const response = await api.get('/ai-agent/suggestions');
       
       console.log('✅ AIService.getSuggestions - Success:', {
         status: response.status,
         statusText: response.statusText,
-        data: data,
-        suggestions: data.suggestions
+        data: response.data,
+        suggestions: response.data.suggestions
       });
       
-      return data.suggestions || [];
+      return response.data.suggestions || [];
     } catch (error: any) {
       console.error('❌ AIService.getSuggestions - Error:', {
         message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
         timestamp: new Date().toISOString()
       });
       
       return [];
     }
   }
-} 
+}
