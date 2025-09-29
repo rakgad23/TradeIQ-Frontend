@@ -13,7 +13,8 @@ import {
   Crown,
   Settings,
   HelpCircle,
-  Search
+  Search,
+  Users
 } from "lucide-react";
 
 const navigationItems = [
@@ -21,6 +22,7 @@ const navigationItems = [
   { icon: Search, label: "Market Analyzer", key: "market-analyzer" },
   { icon: TrendingUp, label: "Analytics", key: "analytics" },
   { icon: ShoppingCart, label: "Products", key: "products" },
+  { icon: Users, label: "Supplier Agent", key: "supplier-agent" },
   { icon: AlertTriangle, label: "Alerts", key: "alerts" },
   { icon: Zap, label: "Automation", key: "automation" },
   { icon: Settings, label: "Settings", key: "settings" },

@@ -9,15 +9,19 @@ import { MarketAnalyzer } from "./components/MarketAnalyzer";
 import { Automations } from "./components/Automations";
 import { Alerts } from "./components/Alerts";
 import { Analytics } from "./components/Analytics";
+import { SupplierAgent } from "./components/SupplierAgent";
+import { SourcingFinder } from "./components/sourcing/SourcingFinder";
+import { SourcingRun } from "./components/sourcing/SourcingRun";
 import Landing from "./components/Landing";
 import SignInWrapper from "./components/SignInWrapper";
 import SignupWrapper from "./components/SignupWrapper";
 import { AuthProvider } from "./context/AuthContext";
 
-type NavKey = "dashboard" | "market-analyzer" | "analytics" | "products" | "alerts" | "automation" | "settings" | "landing" | "pricing" | "signin" | "signup";
+type NavKey = "dashboard" | "market-analyzer" | "analytics" | "products" | "alerts" | "automation" | "settings" | "landing" | "pricing" | "signin" | "signup" | "supplier-agent" | "sourcing" | "sourcing-run";
 
 function AppContent() {
   const [activeSection, setActiveSection] = useState<NavKey>("landing");
+  const [sourcingRunId, setSourcingRunId] = useState<string | null>(null);
 
   const renderMainContent = () => {
     switch (activeSection) {
@@ -35,6 +39,31 @@ function AppContent() {
         return <Analytics />;
       case "products":
         return <Products />;
+      case "supplier-agent":
+        return <SupplierAgent />;
+      case "sourcing":
+        return (
+          <SourcingFinder
+            onRunCreated={(runId) => {
+              setSourcingRunId(runId);
+              setActiveSection("sourcing-run");
+            }}
+          />
+        );
+      case "sourcing-run":
+        return sourcingRunId ? (
+          <SourcingRun
+            runId={sourcingRunId}
+            onBackToFinder={() => setActiveSection("sourcing")}
+          />
+        ) : (
+          <SourcingFinder
+            onRunCreated={(runId) => {
+              setSourcingRunId(runId);
+              setActiveSection("sourcing-run");
+            }}
+          />
+        );
       case "automation":
         return <Automations />;
       case "alerts":
@@ -64,8 +93,8 @@ function AppContent() {
     }
   };
 
-  // Show landing page, signin, and signup without sidebars
-  if (activeSection === "landing" || activeSection === "signin" || activeSection === "signup") {
+  // Show landing page, signin, signup, and supplier-agent without sidebars
+  if (activeSection === "landing" || activeSection === "signin" || activeSection === "signup" || activeSection === "supplier-agent") {
     return (
       <div className="min-h-screen w-full bg-white">
         {renderMainContent()}
