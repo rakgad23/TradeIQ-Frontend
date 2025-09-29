@@ -29,10 +29,12 @@ export class SourcingAPI {
   static async startAgentSearch(query: string, regions: string[] = ["US", "UK", "EU"], maxSuppliers: number = 50): Promise<DiscoverResponse> {
     console.log('🌐 SourcingAPI.startAgentSearch called with:', { query, regions, maxSuppliers });
     try {
-      const response = await api.post<DiscoverResponse>('/supplier-discovery/agent-search', {
-        query,
+      // Use the search query as the brandId and empty asinIds for now
+      const response = await api.post<DiscoverResponse>('/supplier-discovery/discover', {
+        brandId: query, // Use the search query as the brand ID
+        asinIds: [], // Empty ASINs for now
         regions,
-        max_suppliers: maxSuppliers
+        requiredCerts: []
       });
       console.log('✅ SourcingAPI.startAgentSearch response:', response.data);
       return response.data;
@@ -55,12 +57,12 @@ export class SourcingAPI {
   ): Promise<RunResultsResp> {
     const searchParams = new URLSearchParams();
     
-    if (params.limit) searchParams.set('page_size', params.limit.toString());
-    if (params.offset) searchParams.set('page', Math.floor(params.offset / (params.limit || 20)) + 1).toString();
-    if (params.sort) searchParams.set('sort_by', params.sort);
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.offset) searchParams.set('offset', params.offset.toString());
+    if (params.sort) searchParams.set('sort', params.sort);
     
     const queryString = searchParams.toString();
-    const url = `/api/supplier-discovery/results/${runId}${queryString ? `?${queryString}` : ''}`;
+    const url = `/supplier-discovery/runs/${runId}/results${queryString ? `?${queryString}` : ''}`;
     
     console.log('🌐 SourcingAPI.getRunResults called with:', { runId, params, url });
     

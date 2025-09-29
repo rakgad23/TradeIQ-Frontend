@@ -4,7 +4,7 @@ export type RunStatus = "queued" | "running" | "completed" | "failed";
 export interface RunStatusResp {
   runId: string;
   status: RunStatus;
-  startedAt: string;
+  startedAt: string | null;
   completedAt: string | null;
   counts: {
     serpUrls: number;
@@ -16,27 +16,18 @@ export interface RunStatusResp {
 }
 
 export interface SupplierItem {
-  supplier_id: string;
+  supplierId: string;
   name: string;
-  apex_domain: string | null;
+  apexDomain: string | null;
   logo_url?: string;
   company_size?: "startup" | "small" | "medium" | "large" | "enterprise";
   founded_year?: number;
   roles: string[];
   regions: string[];
   contacts: {
-    email?: string;
-    phone?: string;
-    address?: {
-      street?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      postal_code?: string;
-    };
-    type: "sales" | "support" | "general";
+    email: string;
+    type: string;
     valid: boolean;
-    verified: boolean;
   }[];
   certifications: Array<{
     name: string;
@@ -53,8 +44,8 @@ export interface SupplierItem {
   };
   evidence: {
     url: string;
-    snapshot_id?: string;
-    source: "serp" | "crawl";
+    snapshotId?: string;
+    source: string;
   }[];
   extraction_data?: {
     product_match: {
@@ -91,13 +82,8 @@ export interface SupplierItem {
 
 export interface RunResultsResp {
   runId: string;
-  total_suppliers: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-  suppliers: SupplierItem[];
-  filters_applied: Record<string, any>;
-  search_metadata: Record<string, any>;
+  total: number;
+  items: SupplierItem[];
 }
 
 export interface DiscoverRequest {

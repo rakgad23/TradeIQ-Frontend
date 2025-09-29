@@ -130,7 +130,7 @@ export function SupplierAgent() {
   const fetchResults = async (runId: string) => {
     try {
       const results = await SourcingAPI.getRunResults(runId, { limit: 50 });
-      setSuppliers(results.suppliers);
+      setSuppliers(results.items);
       setShowResults(true);
       setIsSearching(false);
     } catch (error) {
@@ -344,7 +344,7 @@ export function SupplierAgent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {suppliers.map((supplier) => (
-                <Card key={supplier.supplier_id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+                <Card key={supplier.supplierId} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
                   <CardContent className="p-4">
                     <div className="relative mb-4">
                       <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
@@ -375,7 +375,7 @@ export function SupplierAgent() {
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         <span className="text-green-400">Available</span>
                         <span>from</span>
-                        <span className="text-blue-400">{supplier.apex_domain || 'N/A'}</span>
+                        <span className="text-blue-400">{supplier.apexDomain || 'N/A'}</span>
                       </div>
                       <div className="text-sm text-gray-300">
                         <div>Regions: {supplier.regions.join(', ')}</div>
@@ -394,7 +394,7 @@ export function SupplierAgent() {
                     <div className="flex items-center gap-2">
                       <Button 
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => window.open(`https://${supplier.apex_domain}`, '_blank')}
+                        onClick={() => window.open(`https://${supplier.apexDomain}`, '_blank')}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Supplier
