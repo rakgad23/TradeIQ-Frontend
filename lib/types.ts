@@ -95,15 +95,32 @@ export interface SupplierItem {
   last_updated?: string;
 }
 
+// Backend Response Types (matching actual API response)
+export interface SupplierResult {
+  supplierId: string;
+  name: string;
+  apexDomain: string;
+  roles: string[];
+  regions: string[];
+  contacts: {
+    email?: string;
+    type: string;
+    valid: boolean;
+  }[];
+  scores: {
+    rank: number;
+  };
+  evidence: {
+    url: string;
+    snapshotId?: string;
+    source: string;
+  }[];
+}
+
 export interface RunResultsResp {
-  run_id: string;
-  total_suppliers: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-  suppliers: SupplierItem[];
-  filters_applied: Record<string, any>;
-  search_metadata: Record<string, any>;
+  runId: string;
+  total: number;
+  items: SupplierResult[];
 }
 
 export interface DiscoverRequest {

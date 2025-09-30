@@ -16,7 +16,7 @@ export class SourcingAPI {
   static async startDiscover(payload: DiscoverRequest): Promise<DiscoverResponse> {
     console.log('🌐 SourcingAPI.startDiscover called with payload:', payload);
     try {
-      const response = await api.post<DiscoverResponse>('/api/supplier-discovery/discover', payload);
+      const response = await api.post<DiscoverResponse>('/supplier-discovery/discover', payload);
       console.log('✅ SourcingAPI.startDiscover response:', response.data);
       return response.data;
     } catch (error) {
@@ -29,10 +29,11 @@ export class SourcingAPI {
   static async startAgentSearch(query: string, regions: string[] = ["US", "UK", "EU"], maxSuppliers: number = 50): Promise<DiscoverResponse> {
     console.log('🌐 SourcingAPI.startAgentSearch called with:', { query, regions, maxSuppliers });
     try {
-      const response = await api.post<DiscoverResponse>('/api/supplier-discovery/agent-search', {
-        query,
+      const response = await api.post<DiscoverResponse>('/supplier-discovery/discover', {
+        brandId: query, // Use the search query as the brand ID
+        asinIds: [], // Empty ASINs for now
         regions,
-        max_suppliers: maxSuppliers
+        requiredCerts: []
       });
       console.log('✅ SourcingAPI.startAgentSearch response:', response.data);
       return response.data;
@@ -55,18 +56,17 @@ export class SourcingAPI {
   ): Promise<RunResultsResp> {
     const searchParams = new URLSearchParams();
     
-    if (params.limit) searchParams.set('page_size', params.limit.toString());
-    if (params.offset) searchParams.set('page', Math.floor(params.offset / (params.limit || 20)) + 1 + '');
-    if (params.sort) searchParams.set('sort_by', params.sort);
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.offset) searchParams.set('offset', params.offset.toString());
+    if (params.sort) searchParams.set('sort', params.sort);
     
     const queryString = searchParams.toString();
-    // Remove the /api prefix from the endpoint
-    const url = `/supplier-discovery/runs/${runId}/results`;
+    const url = `/supplier-discovery/runs/${runId}/results${queryString ? `?${queryString}` : ''}`;
     
     console.log('🌐 SourcingAPI.getRunResults called with:', { runId, params, url });
-
+    
     try {
-      const response = await api.get(url);
+      const response = await api.get<RunResultsResp>(url);
       console.log('✅ SourcingAPI.getRunResults response:', response.data);
       return response.data;
     } catch (error) {
@@ -79,7 +79,7 @@ export class SourcingAPI {
   static async simulateTCA(payload: TCASimulationRequest): Promise<TCASimulationResponse> {
     console.log('🌐 SourcingAPI.simulateTCA called with payload:', payload);
     try {
-      const response = await api.post<TCASimulationResponse>('/api/supplier-discovery/tca/simulate', payload);
+      const response = await api.post<TCASimulationResponse>('/supplier-discovery/tca/simulate', payload);
       console.log('✅ SourcingAPI.simulateTCA response:', response.data);
       return response.data;
     } catch (error) {
@@ -92,7 +92,7 @@ export class SourcingAPI {
   static async draftOutreach(payload: OutreachDraftRequest): Promise<OutreachDraftResponse> {
     console.log('🌐 SourcingAPI.draftOutreach called with payload:', payload);
     try {
-      const response = await api.post<OutreachDraftResponse>('/api/supplier-discovery/outreach/draft', payload);
+      const response = await api.post<OutreachDraftResponse>('/supplier-discovery/outreach/draft', payload);
       console.log('✅ SourcingAPI.draftOutreach response:', response.data);
       return response.data;
     } catch (error) {
@@ -105,7 +105,7 @@ export class SourcingAPI {
   static async testImportYeti(query: string = "Apple Inc"): Promise<any> {
     console.log('🌐 SourcingAPI.testImportYeti called with query:', query);
     try {
-      const response = await api.get(`/api/supplier-discovery/importyeti/test-public?query=${encodeURIComponent(query)}`);
+      const response = await api.get(`/supplier-discovery/importyeti/test-public?query=${encodeURIComponent(query)}`);
       console.log('✅ SourcingAPI.testImportYeti response:', response.data);
       return response.data;
     } catch (error) {

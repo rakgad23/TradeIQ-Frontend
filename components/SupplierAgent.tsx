@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { SourcingAPI } from "../lib/sourcingApi";
-import { SupplierItem } from "../lib/types";
+import { SupplierResult } from "../lib/types";
 
 // Mock sources data
 const mockSources = [
@@ -45,7 +45,7 @@ export function SupplierAgent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<ProgressUpdate | null>(null);
-  const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [sortBy, setSortBy] = useState("relevance");
@@ -322,13 +322,13 @@ export function SupplierAgent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {suppliers.map((supplier) => (
-                <Card key={supplier.supplier_id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+                <Card key={supplier.supplierId} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
                   <CardContent className="p-4">
                     <div className="relative mb-4">
                       <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
-                        {supplier.logo_url ? (
+                        {false ? (
                           <img 
-                            src={supplier.logo_url} 
+                            src="" 
                             alt={supplier.name}
                             className="w-full h-full object-cover"
                           />
@@ -353,26 +353,32 @@ export function SupplierAgent() {
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         <span className="text-green-400">Available</span>
                         <span>from</span>
-                        <span className="text-blue-400">{supplier.apex_domain || 'N/A'}</span>
+                        <span className="text-blue-400 font-mono text-xs">
+                          {supplier.apexDomain || 'N/A'}
+                        </span>
                       </div>
                       <div className="text-sm text-gray-300">
                         <div>Regions: {supplier.regions.join(', ')}</div>
                         <div>Roles: {supplier.roles.slice(0, 2).join(', ')}</div>
-                        {supplier.extraction_data?.pricing_info?.[0] && (
-                          <div className="text-lg font-bold text-white mt-1">
-                            {supplier.extraction_data.pricing_info[0].value ? 
-                              `$${supplier.extraction_data.pricing_info[0].value}` : 
-                              'Contact for pricing'
-                            }
-                          </div>
-                        )}
+                        <div className="text-lg font-bold text-white mt-1">
+                          Contact for pricing
+                        </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2">
                       <Button 
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => window.open(`https://${supplier.apex_domain}`, '_blank')}
+                        onClick={() => {
+                          if (supplier.apexDomain) {
+                            // Ensure the URL has a protocol
+                            const url = supplier.apexDomain.startsWith('http') 
+                              ? supplier.apexDomain 
+                              : `https://${supplier.apexDomain}`;
+                            window.open(url, '_blank');
+                          }
+                        }}
+                        disabled={!supplier.apexDomain}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Supplier

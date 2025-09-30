@@ -95,17 +95,13 @@ export class TokenManager {
   private static ACCESS_TOKEN_KEY = 'tradeiq_access_token';
   private static REFRESH_TOKEN_KEY = 'tradeiq_refresh_token';
   
-  // Hardcoded access token for testing
-  private static HARDCODED_ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODZkNzNlYWUxMTM3OGQwYWZjZmIzNzgiLCJlbWFpbCI6InRlc3R1c2VyQHRlc3QuY29tIiwiZXhwIjoxNzU5MjA3MjAwLCJ0eXBlIjoiYWNjZXNzIn0.w0JCt9guLeYN_cjgChivQD-LgezKaf_lUSJ2Ri1xSuI';
-
   static setTokens(accessToken: string, refreshToken: string): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
   }
 
   static getAccessToken(): string | null {
-    // Return hardcoded token instead of localStorage for testing
-    return this.HARDCODED_ACCESS_TOKEN;
+    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
   }
 
   static getRefreshToken(): string | null {
