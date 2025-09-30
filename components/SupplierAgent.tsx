@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bot, CheckCircle, AlertTriangle, Loader2, Sparkles, ExternalLink, Heart, BarChart3 } from "lucide-react";
+import { Search, Bot, CheckCircle, AlertTriangle, Loader2, Sparkles, ExternalLink, Heart, BarChart3, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -51,6 +51,53 @@ export function SupplierAgent() {
   const [sortBy, setSortBy] = useState("relevance");
   const [runId, setRunId] = useState<string | null>(null);
   const [sources] = useState(mockSources);
+  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(new Set());
+  
+  // Helper functions
+  const toggleSupplierExpansion = (supplierId: string) => {
+    setExpandedSuppliers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(supplierId)) {
+        newSet.delete(supplierId);
+      } else {
+        newSet.add(supplierId);
+      }
+      return newSet;
+    });
+  };
+
+  const draftEmailToSupplier = (supplier: SupplierResult) => {
+    const validContacts = supplier.contacts?.filter(contact => contact.email && contact.valid) || [];
+    
+    if (validContacts.length === 0) {
+      // Show a more helpful message when no emails are available
+      const message = `No verified email addresses found for ${supplier.name}.\n\nThis could be because:\n• The supplier's website doesn't publicly list contact emails\n• The AI couldn't verify the email addresses found\n• The supplier uses contact forms instead of direct emails\n\nTry visiting their website directly or using other contact methods.`;
+      alert(message);
+      return;
+    }
+    
+    const emailAddresses = validContacts.map(contact => contact.email).join(', ');
+    const subject = `Partnership Inquiry - ${supplier.name}`;
+    const body = `Dear ${supplier.name} Team,
+
+I hope this message finds you well. I am reaching out regarding a potential partnership opportunity.
+
+We are a growing e-commerce business looking to establish reliable supplier relationships for high-quality products. Based on our research, your company appears to be an excellent fit for our sourcing needs.
+
+We would be interested in discussing:
+- Product specifications and quality standards
+- Minimum order quantities and pricing
+- Lead times and shipping capabilities
+- Quality assurance processes
+
+Would you be available for a brief call this week to discuss this opportunity further?
+
+Best regards,
+TradeIQ Sourcing Team`;
+    
+    const mailtoLink = `mailto:${emailAddresses}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+  };
   
   // Timer for progress animation
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,7 +174,7 @@ export function SupplierAgent() {
 
   const fetchResults = async (runId: string) => {
     try {
-      const results = await SourcingAPI.getRunResults('68daa41a2ddc4afb45298714', { limit: 50 });
+      const results = await SourcingAPI.getRunResults('68dbeab8ce12c53ea65096a7', { limit: 50 });
       setSuppliers(results.items);
       setShowResults(true);
       setIsSearching(false);
@@ -340,11 +387,16 @@ export function SupplierAgent() {
                           </div>
                         )}
                       </div>
-                      {supplier.scores.rank > 0.9 && (
-                        <Badge className="absolute top-2 right-2 bg-blue-600 text-white">
-                          Top Match
-                        </Badge>
-                      )}
+                        {supplier.llm_rank && supplier.llm_rank > 0.8 && (
+                          <Badge className="absolute top-2 right-2 bg-green-600 text-white">
+                            Verified
+                          </Badge>
+                        )}
+                        {supplier.scores.rank > 0.9 && (
+                          <Badge className="absolute top-2 left-2 bg-blue-600 text-white">
+                            High Rank
+                          </Badge>
+                        )}
                     </div>
                     
                     <h3 className="font-semibold text-white mb-2 line-clamp-2">{supplier.name}</h3>
@@ -360,8 +412,105 @@ export function SupplierAgent() {
                       <div className="text-sm text-gray-300">
                         <div>Regions: {supplier.regions.join(', ')}</div>
                         <div>Roles: {supplier.roles.slice(0, 2).join(', ')}</div>
-                        <div className="text-lg font-bold text-white mt-1">
-                          Contact for pricing
+                        {supplier.llm_rank && (
+                          <div className="mt-2 p-2 bg-gray-700 rounded text-xs">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-green-400 font-semibold">
+                                Verification Score: {(supplier.llm_rank * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            {supplier.reason && (
+                              <div className="text-gray-400 text-xs">
+                                {supplier.reason}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Contact Information Section */}
+                        <div className="mt-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleSupplierExpansion(supplier.supplierId)}
+                            className="w-full justify-between p-2 h-auto bg-gray-700 hover:bg-gray-600 text-gray-300"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4" />
+                              <span className="text-sm">Contact Information</span>
+                              {supplier.contacts && supplier.contacts.length > 0 ? (
+                                <Badge variant="secondary" className="bg-blue-600 text-white text-xs">
+                                  {supplier.contacts.filter(c => c.email && c.valid).length} emails
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-orange-500 text-orange-400 text-xs">
+                                  No emails found
+                                </Badge>
+                              )}
+                            </div>
+                            {expandedSuppliers.has(supplier.supplierId) ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </Button>
+                          
+                          {expandedSuppliers.has(supplier.supplierId) && (
+                            <div className="mt-2 space-y-2 bg-gray-800 rounded-lg p-3">
+                              {supplier.contacts && supplier.contacts.length > 0 ? (
+                                <>
+                                  {supplier.contacts
+                                    .filter(contact => contact.email && contact.valid)
+                                    .map((contact, index) => (
+                                      <div key={index} className="flex items-center justify-between p-2 bg-gray-700 rounded">
+                                        <div className="flex items-center gap-2">
+                                          <Mail className="w-3 h-3 text-blue-400" />
+                                          <span className="text-sm text-gray-300">{contact.email}</span>
+                                          <Badge 
+                                            variant="outline" 
+                                            className={`text-xs ${
+                                              contact.type === 'sales' ? 'border-green-500 text-green-400' :
+                                              contact.type === 'support' ? 'border-blue-500 text-blue-400' :
+                                              'border-gray-500 text-gray-400'
+                                            }`}
+                                          >
+                                            {contact.type}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  
+                                  {supplier.contacts.filter(c => c.email && c.valid).length > 0 ? (
+                                    <Button
+                                      onClick={() => draftEmailToSupplier(supplier)}
+                                      className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
+                                      size="sm"
+                                    >
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Draft Email
+                                    </Button>
+                                  ) : (
+                                    <div className="text-center text-gray-400 text-sm py-2">
+                                      No valid email addresses found
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="text-center py-4">
+                                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                                    <Mail className="w-8 h-8 text-gray-500" />
+                                    <div className="text-sm font-medium">No Contact Information Found</div>
+                                    <div className="text-xs text-gray-500">
+                                      AI couldn't find verified email addresses for this supplier
+                                    </div>
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      Try visiting their website directly or using other contact methods
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

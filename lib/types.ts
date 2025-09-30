@@ -93,6 +93,9 @@ export interface SupplierItem {
   };
   found_at: string;
   last_updated?: string;
+  relevant?: boolean;
+  reason?: string;
+  llm_rank?: number;
 }
 
 // Backend Response Types (matching actual API response)
@@ -115,6 +118,9 @@ export interface SupplierResult {
     snapshotId?: string;
     source: string;
   }[];
+  relevant?: boolean;
+  reason?: string;
+  llm_rank?: number;
 }
 
 export interface RunResultsResp {
@@ -131,11 +137,7 @@ export interface DiscoverRequest {
 }
 
 export interface DiscoverResponse {
-  run_id: string;
-  session_id: string;
-  status: string;
-  message: string;
-  estimated_duration: number;
+  sourcing_run_id: string;
 }
 
 export interface RunResultsParams {
