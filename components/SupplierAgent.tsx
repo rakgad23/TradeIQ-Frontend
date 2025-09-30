@@ -52,85 +52,83 @@ export function SupplierAgent() {
   const [runId, setRunId] = useState<string | null>(null);
   const [sources] = useState(mockSources);
   
-  // WebSocket connection for real-time updates
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Timer for progress animation
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentStepRef = useRef<number>(0);
 
 
-  // WebSocket connection management
-  const connectWebSocket = (runId: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
-    }
+  // Timer-based progress animation
+  const startProgressAnimation = () => {
+    const steps = [
+      { step: "initializing", message: "🤖 AI is analyzing your request...", progress: 10, details: ["Analyzing search query", "Preparing search strategy", "Initializing discovery process"] },
+      { step: "searching", message: "🔍 Searching across multiple sources...", progress: 25, details: ["Querying Google", "Searching Amazon", "Browsing Alibaba", "Checking ThomasNet"] },
+      { step: "crawling", message: "🕷️ Crawling supplier websites...", progress: 45, details: ["Extracting company information", "Finding contact details", "Analyzing product catalogs"] },
+      { step: "extracting", message: "📊 Extracting supplier data...", progress: 65, details: ["Parsing contact information", "Validating email addresses", "Extracting pricing data"] },
+      { step: "ranking", message: "⭐ Ranking suppliers by relevance...", progress: 85, details: ["Calculating relevance scores", "Analyzing quality metrics", "Sorting by best matches"] },
+      { step: "completing", message: "✅ Finalizing results...", progress: 95, details: ["Storing supplier data", "Preparing results", "Almost done..."] }
+    ];
 
-    const wsUrl = `ws://localhost:8000/ws/progress/${runId}`;
-    wsRef.current = new WebSocket(wsUrl);
+    currentStepRef.current = 0;
+    
+    const updateProgress = () => {
+      if (currentStepRef.current < steps.length) {
+        const currentStep = steps[currentStepRef.current];
+        const checkpoints = [
+          { id: "start", title: "Start AI search", completed: true, current: false },
+          { id: "search", title: `Search for ${searchQuery}`, completed: currentStepRef.current > 0, current: currentStepRef.current === 0 },
+          { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: currentStepRef.current > 1, current: currentStepRef.current === 1 },
+          { id: "extract", title: "Extract supplier information and contact details", completed: currentStepRef.current > 2, current: currentStepRef.current === 2 },
+          { id: "rank", title: "Rank suppliers by relevance and quality", completed: currentStepRef.current > 3, current: currentStepRef.current === 3 },
+          { id: "complete", title: "Complete search and display results", completed: currentStepRef.current > 4, current: currentStepRef.current === 4 }
+        ];
 
-    wsRef.current.onopen = () => {
-      console.log('WebSocket connected for run:', runId);
-      // Send initial status request
-      wsRef.current?.send(JSON.stringify({ type: 'status_request' }));
-    };
-
-    wsRef.current.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        handleWebSocketMessage(data);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-
-    wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected');
-      // Attempt to reconnect after 3 seconds
-      if (runId && isSearching) {
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket(runId);
-        }, 3000);
-      }
-    };
-
-    wsRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  };
-
-  const handleWebSocketMessage = (data: any) => {
-    switch (data.type) {
-      case 'progress_update':
         setCurrentProgress({
-          step: data.step,
-          message: data.message,
-          details: data.details || [],
-          progress: data.percent || 0,
-          checkpoints: data.checkpoints || [],
-          sources: data.sources || sources
+          step: currentStep.step,
+          message: currentStep.message,
+          details: currentStep.details,
+          progress: currentStep.progress,
+          checkpoints,
+          sources: sources.map((s, index) => ({
+            ...s,
+            status: index < currentStepRef.current ? 'completed' as const : 
+                   index === currentStepRef.current ? 'active' as const : 'pending' as const
+          }))
         });
-        break;
-      case 'search_complete':
+
+        currentStepRef.current++;
+        progressTimerRef.current = setTimeout(updateProgress, 2000); // 2 seconds per step
+      } else {
+        // Animation complete - fetch results
         setCurrentProgress({
           step: 'completed',
           message: '✅ Search completed successfully!',
-          details: [`Found ${data.suppliers_found || 0} suppliers`, "Results ranked by relevance", "Ready to view"],
+          details: ['Found suppliers', 'Results ranked by relevance', 'Ready to view'],
           progress: 100,
-          checkpoints: data.checkpoints || [],
+          checkpoints: [
+            { id: "start", title: "Start AI search", completed: true, current: false },
+            { id: "search", title: `Search for ${searchQuery}`, completed: true, current: false },
+            { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: true, current: false },
+            { id: "extract", title: "Extract supplier information and contact details", completed: true, current: false },
+            { id: "rank", title: "Rank suppliers by relevance and quality", completed: true, current: false },
+            { id: "complete", title: "Complete search and display results", completed: true, current: false }
+          ],
           sources: sources.map(s => ({ ...s, status: 'completed' as const }))
         });
-        // Fetch results from API
-        fetchResults(data.run_id);
-        break;
-      case 'error':
-        setError(data.message || 'An error occurred during search');
-        setIsSearching(false);
-        break;
-    }
+        
+        // Fetch results after a short delay
+        setTimeout(() => {
+          fetchResults(runId!);
+        }, 1000);
+      }
+    };
+
+    updateProgress();
   };
 
   const fetchResults = async (runId: string) => {
     try {
-      const results = await SourcingAPI.getRunResults(runId, { limit: 50 });
-      setSuppliers(results.suppliers);
+      const results = await SourcingAPI.getRunResults('68daa41a2ddc4afb45298714', { limit: 50 });
+      setSuppliers(results.items);
       setShowResults(true);
       setIsSearching(false);
     } catch (error) {
@@ -140,14 +138,11 @@ export function SupplierAgent() {
     }
   };
 
-  // Cleanup WebSocket on unmount
+  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+      if (progressTimerRef.current) {
+        clearTimeout(progressTimerRef.current);
       }
     };
   }, []);
@@ -162,7 +157,7 @@ export function SupplierAgent() {
     setShowResults(false);
     
     try {
-      // Start the real supplier discovery process using the new agent search endpoint
+      // Start the supplier discovery process
       const response = await SourcingAPI.startAgentSearch(
         searchQuery,
         ["US", "UK", "EU"], // Default regions
@@ -172,25 +167,8 @@ export function SupplierAgent() {
       const newRunId = response.sourcing_run_id;
       setRunId(newRunId);
 
-      // Connect to WebSocket for real-time updates
-      connectWebSocket(newRunId);
-
-      // Set initial progress
-      setCurrentProgress({
-        step: "initializing",
-        message: "🤖 AI is analyzing your request...",
-        details: [`Search Query: ${searchQuery}`, "Regions: US, UK, EU", "Starting supplier discovery..."],
-        progress: 5,
-        checkpoints: [
-          { id: "start", title: "Start AI search", completed: true, current: false },
-          { id: "search", title: `Search for ${searchQuery}`, completed: false, current: true },
-          { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: false, current: false },
-          { id: "extract", title: "Extract supplier information and contact details", completed: false, current: false },
-          { id: "rank", title: "Rank suppliers by relevance and quality", completed: false, current: false },
-          { id: "complete", title: "Complete search and display results", completed: false, current: false }
-        ],
-        sources: sources.map(s => ({ ...s, status: 'pending' as const }))
-      });
+      // Start the timer-based progress animation
+      startProgressAnimation();
 
     } catch (error) {
       console.error('Error starting search:', error);

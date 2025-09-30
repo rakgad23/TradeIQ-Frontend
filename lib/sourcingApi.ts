@@ -44,7 +44,7 @@ export class SourcingAPI {
 
   // Get run status with polling
   static async getRunStatus(runId: string): Promise<RunStatusResp> {
-    const response = await api.get<RunStatusResp>(`/api/supplier-discovery/runs/${runId}/status`);
+    const response = await api.get<RunStatusResp>(`/supplier-discovery/runs/${runId}/status`);
     return response.data;
   }
 
@@ -56,16 +56,17 @@ export class SourcingAPI {
     const searchParams = new URLSearchParams();
     
     if (params.limit) searchParams.set('page_size', params.limit.toString());
-    if (params.offset) searchParams.set('page', Math.floor(params.offset / (params.limit || 20)) + 1).toString();
+    if (params.offset) searchParams.set('page', Math.floor(params.offset / (params.limit || 20)) + 1 + '');
     if (params.sort) searchParams.set('sort_by', params.sort);
     
     const queryString = searchParams.toString();
-    const url = `/api/supplier-discovery/results/${runId}${queryString ? `?${queryString}` : ''}`;
+    // Remove the /api prefix from the endpoint
+    const url = `/supplier-discovery/runs/${runId}/results`;
     
     console.log('🌐 SourcingAPI.getRunResults called with:', { runId, params, url });
-    
+
     try {
-      const response = await api.get<RunResultsResp>(url);
+      const response = await api.get(url);
       console.log('✅ SourcingAPI.getRunResults response:', response.data);
       return response.data;
     } catch (error) {
