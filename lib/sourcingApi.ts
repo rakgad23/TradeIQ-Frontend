@@ -16,7 +16,7 @@ export class SourcingAPI {
   static async startDiscover(payload: DiscoverRequest): Promise<DiscoverResponse> {
     console.log('🌐 SourcingAPI.startDiscover called with payload:', payload);
     try {
-      const response = await api.post<DiscoverResponse>('/supplier-discovery/discover', payload);
+      const response = await api.post<DiscoverResponse>('/api/supplier-discovery/discover', payload);
       console.log('✅ SourcingAPI.startDiscover response:', response.data);
       return response.data;
     } catch (error) {
@@ -29,7 +29,7 @@ export class SourcingAPI {
   static async startAgentSearch(query: string, regions: string[] = ["US", "UK", "EU"], maxSuppliers: number = 50): Promise<DiscoverResponse> {
     console.log('🌐 SourcingAPI.startAgentSearch called with:', { query, regions, maxSuppliers });
     try {
-      const response = await api.post<DiscoverResponse>('/supplier-discovery/agent-search', {
+      const response = await api.post<DiscoverResponse>('/api/supplier-discovery/agent-search', {
         query,
         regions,
         max_suppliers: maxSuppliers
@@ -44,7 +44,7 @@ export class SourcingAPI {
 
   // Get run status with polling
   static async getRunStatus(runId: string): Promise<RunStatusResp> {
-    const response = await api.get<RunStatusResp>(`/supplier-discovery/runs/${runId}/status`);
+    const response = await api.get<RunStatusResp>(`/api/supplier-discovery/runs/${runId}/status`);
     return response.data;
   }
 
@@ -78,7 +78,7 @@ export class SourcingAPI {
   static async simulateTCA(payload: TCASimulationRequest): Promise<TCASimulationResponse> {
     console.log('🌐 SourcingAPI.simulateTCA called with payload:', payload);
     try {
-      const response = await api.post<TCASimulationResponse>('/supplier-discovery/tca/simulate', payload);
+      const response = await api.post<TCASimulationResponse>('/api/supplier-discovery/tca/simulate', payload);
       console.log('✅ SourcingAPI.simulateTCA response:', response.data);
       return response.data;
     } catch (error) {
@@ -91,7 +91,7 @@ export class SourcingAPI {
   static async draftOutreach(payload: OutreachDraftRequest): Promise<OutreachDraftResponse> {
     console.log('🌐 SourcingAPI.draftOutreach called with payload:', payload);
     try {
-      const response = await api.post<OutreachDraftResponse>('/supplier-discovery/outreach/draft', payload);
+      const response = await api.post<OutreachDraftResponse>('/api/supplier-discovery/outreach/draft', payload);
       console.log('✅ SourcingAPI.draftOutreach response:', response.data);
       return response.data;
     } catch (error) {
@@ -104,7 +104,7 @@ export class SourcingAPI {
   static async testImportYeti(query: string = "Apple Inc"): Promise<any> {
     console.log('🌐 SourcingAPI.testImportYeti called with query:', query);
     try {
-      const response = await api.get(`/supplier-discovery/importyeti/test-public?query=${encodeURIComponent(query)}`);
+      const response = await api.get(`/api/supplier-discovery/importyeti/test-public?query=${encodeURIComponent(query)}`);
       console.log('✅ SourcingAPI.testImportYeti response:', response.data);
       return response.data;
     } catch (error) {

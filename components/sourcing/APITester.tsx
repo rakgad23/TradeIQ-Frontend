@@ -65,7 +65,7 @@ export function APITester() {
       console.log('✅ Discover API response:', response);
       
       addResponse(endpoint, 'POST', request, response);
-      setTestRunId(response.sourcing_run_id);
+      setTestRunId(response.run_id);
     } catch (error) {
       console.error('❌ Discover API error:', error);
       const request = {
@@ -98,6 +98,7 @@ export function APITester() {
       addResponse(endpoint, 'GET', request, response);
     } catch (error) {
       console.error('❌ Status API error:', error);
+      const request = { runId: testRunId };
       addResponse(endpoint, 'GET', request, null, error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(endpoint, false);
@@ -119,9 +120,9 @@ export function APITester() {
       const response = await SourcingAPI.getRunResults(testRunId, { limit: 10, offset: 0, sort: 'rank' });
       console.log('✅ Results API response:', response);
       console.log('📊 Results API response structure:', {
-        total: response.total,
-        itemsCount: response.items?.length || 0,
-        items: response.items
+        total: response.total_suppliers,
+        itemsCount: response.suppliers?.length || 0,
+        items: response.suppliers
       });
       
       addResponse(endpoint, 'GET', request, response);
@@ -146,7 +147,13 @@ export function APITester() {
         supplierId: testSupplierId,
         asinId: primaryAsin,
         quantity: 1000,
-        region: 'US'
+        region: 'US',
+        unitCost: 10.0,
+        shippingMode: 'ocean' as const,
+        incoterm: 'FOB' as const,
+        costPerUnit: 0.5,
+        dutyPercent: 0.05,
+        storageMonths: 1
       };
       
       console.log('🧪 Testing TCA API with:', request);
@@ -162,7 +169,13 @@ export function APITester() {
         supplierId: testSupplierId,
         asinId: primaryAsin,
         quantity: 1000,
-        region: 'US'
+        region: 'US',
+        unitCost: 10.0,
+        shippingMode: 'ocean' as const,
+        incoterm: 'FOB' as const,
+        costPerUnit: 0.5,
+        dutyPercent: 0.05,
+        storageMonths: 1
       };
       addResponse(endpoint, 'POST', request, null, error instanceof Error ? error.message : 'Unknown error');
     } finally {
@@ -182,7 +195,9 @@ export function APITester() {
         supplierId: testSupplierId,
         asinId: primaryAsin,
         messageType: testMessageType,
-        customContext: 'Testing outreach draft generation'
+        customContext: 'Testing outreach draft generation',
+        brandId: testBrand,
+        asinIds: [primaryAsin]
       };
       
       console.log('🧪 Testing Outreach API with:', request);
@@ -198,7 +213,9 @@ export function APITester() {
         supplierId: testSupplierId,
         asinId: primaryAsin,
         messageType: testMessageType,
-        customContext: 'Testing outreach draft generation'
+        customContext: 'Testing outreach draft generation',
+        brandId: testBrand,
+        asinIds: [primaryAsin]
       };
       addResponse(endpoint, 'POST', request, null, error instanceof Error ? error.message : 'Unknown error');
     } finally {

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -95,7 +96,7 @@ export function SourcingFinder({ onRunCreated }: SourcingFinderProps) {
         description: "Supplier discovery is now running in the background"
       });
       
-      onRunCreated(response.sourcing_run_id);
+      onRunCreated(response.run_id);
     } catch (error) {
       console.error('❌ API request failed:', error);
       toast({

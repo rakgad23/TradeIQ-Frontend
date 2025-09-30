@@ -2,17 +2,23 @@
 export type RunStatus = "queued" | "running" | "completed" | "failed";
 
 export interface RunStatusResp {
-  runId: string;
+  run_id: string;
+  session_id: string;
   status: RunStatus;
-  startedAt: string;
-  completedAt: string | null;
+  progress_percent: number;
+  current_step: string;
+  message: string;
+  started_at: string | null;
+  completed_at: string | null;
+  estimated_remaining: number | null;
+  last_update: string;
   counts: {
     serpUrls: number;
     pagesCrawled: number;
     suppliersFound: number;
     suppliersDeduped: number;
   };
-  lastError: string | null;
+  last_error: string | null;
 }
 
 export interface SupplierItem {
@@ -90,7 +96,7 @@ export interface SupplierItem {
 }
 
 export interface RunResultsResp {
-  runId: string;
+  run_id: string;
   total_suppliers: number;
   page: number;
   page_size: number;
@@ -108,7 +114,11 @@ export interface DiscoverRequest {
 }
 
 export interface DiscoverResponse {
-  sourcing_run_id: string;
+  run_id: string;
+  session_id: string;
+  status: string;
+  message: string;
+  estimated_duration: number;
 }
 
 export interface RunResultsParams {
