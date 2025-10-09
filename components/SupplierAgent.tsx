@@ -58,7 +58,9 @@ export function SupplierAgent() {
 
 
   // Timer-based progress animation
-  const startProgressAnimation = () => {
+  const startProgressAnimation = (newRunId: string) => {
+    console.log('🚀 Starting progress animation with polling for runId:', newRunId);
+    
     const steps = [
       { step: "initializing", message: "🤖 AI is analyzing your request...", progress: 10, details: ["Analyzing search query", "Preparing search strategy", "Initializing discovery process"] },
       { step: "searching", message: "🔍 Searching across multiple sources...", progress: 25, details: ["Querying Google", "Searching Amazon", "Browsing Alibaba", "Checking ThomasNet"] },
@@ -69,65 +71,116 @@ export function SupplierAgent() {
     ];
 
     currentStepRef.current = 0;
+    let pollAttempts = 0;
+    const maxPollAttempts = 60; // Poll for up to 2 minutes (60 * 2 seconds)
     
-    const updateProgress = () => {
-      if (currentStepRef.current < steps.length) {
-        const currentStep = steps[currentStepRef.current];
-        const checkpoints = [
-          { id: "start", title: "Start AI search", completed: true, current: false },
-          { id: "search", title: `Search for ${searchQuery}`, completed: currentStepRef.current > 0, current: currentStepRef.current === 0 },
-          { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: currentStepRef.current > 1, current: currentStepRef.current === 1 },
-          { id: "extract", title: "Extract supplier information and contact details", completed: currentStepRef.current > 2, current: currentStepRef.current === 2 },
-          { id: "rank", title: "Rank suppliers by relevance and quality", completed: currentStepRef.current > 3, current: currentStepRef.current === 3 },
-          { id: "complete", title: "Complete search and display results", completed: currentStepRef.current > 4, current: currentStepRef.current === 4 }
-        ];
-
-        setCurrentProgress({
-          step: currentStep.step,
-          message: currentStep.message,
-          details: currentStep.details,
-          progress: currentStep.progress,
-          checkpoints,
-          sources: sources.map((s, index) => ({
-            ...s,
-            status: index < currentStepRef.current ? 'completed' as const : 
-                   index === currentStepRef.current ? 'active' as const : 'pending' as const
-          }))
-        });
-
-        currentStepRef.current++;
-        progressTimerRef.current = setTimeout(updateProgress, 2000); // 2 seconds per step
-      } else {
-        // Animation complete - fetch results
-        setCurrentProgress({
-          step: 'completed',
-          message: '✅ Search completed successfully!',
-          details: ['Found suppliers', 'Results ranked by relevance', 'Ready to view'],
-          progress: 100,
-          checkpoints: [
-            { id: "start", title: "Start AI search", completed: true, current: false },
-            { id: "search", title: `Search for ${searchQuery}`, completed: true, current: false },
-            { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: true, current: false },
-            { id: "extract", title: "Extract supplier information and contact details", completed: true, current: false },
-            { id: "rank", title: "Rank suppliers by relevance and quality", completed: true, current: false },
-            { id: "complete", title: "Complete search and display results", completed: true, current: false }
-          ],
-          sources: sources.map(s => ({ ...s, status: 'completed' as const }))
-        });
+    const pollStatus = async () => {
+      try {
+        console.log(`📊 Polling status for runId: ${newRunId} (attempt ${pollAttempts + 1}/${maxPollAttempts})`);
+        const status = await SourcingAPI.getRunStatus(newRunId);
+        console.log('📊 Status response:', status);
         
-        // Fetch results after a short delay
-        setTimeout(() => {
-          fetchResults(runId!);
-        }, 1000);
+        // Update progress based on actual status
+        if (status.status === 'completed') {
+          console.log('✅ Pipeline completed! Fetching results...');
+          setCurrentProgress({
+            step: 'completed',
+            message: '✅ Search completed successfully!',
+            details: [`Found ${status.counts?.suppliersFound || 0} suppliers`, 'Results ranked by relevance', 'Ready to view'],
+            progress: 100,
+            checkpoints: [
+              { id: "start", title: "Start AI search", completed: true, current: false },
+              { id: "search", title: `Search for ${searchQuery}`, completed: true, current: false },
+              { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: true, current: false },
+              { id: "extract", title: "Extract supplier information and contact details", completed: true, current: false },
+              { id: "rank", title: "Rank suppliers by relevance and quality", completed: true, current: false },
+              { id: "complete", title: "Complete search and display results", completed: true, current: false }
+            ],
+            sources: sources.map(s => ({ ...s, status: 'completed' as const }))
+          });
+          
+          // Fetch results
+          setTimeout(() => {
+            fetchResults(newRunId);
+          }, 500);
+          return;
+        } else if (status.status === 'failed') {
+          console.error('❌ Pipeline failed:', status.lastError);
+          setError(`Pipeline failed: ${status.lastError || 'Unknown error'}`);
+          setIsSearching(false);
+          return;
+        } else if (status.status === 'running' || status.status === 'queued') {
+          // Still running - update progress animation
+          if (currentStepRef.current < steps.length) {
+            const currentStep = steps[currentStepRef.current];
+            const checkpoints = [
+              { id: "start", title: "Start AI search", completed: true, current: false },
+              { id: "search", title: `Search for ${searchQuery}`, completed: currentStepRef.current > 0, current: currentStepRef.current === 0 },
+              { id: "browse", title: "Browse and extract suppliers from relevant sources", completed: currentStepRef.current > 1, current: currentStepRef.current === 1 },
+              { id: "extract", title: "Extract supplier information and contact details", completed: currentStepRef.current > 2, current: currentStepRef.current === 2 },
+              { id: "rank", title: "Rank suppliers by relevance and quality", completed: currentStepRef.current > 3, current: currentStepRef.current === 3 },
+              { id: "complete", title: "Complete search and display results", completed: currentStepRef.current > 4, current: currentStepRef.current === 4 }
+            ];
+
+            setCurrentProgress({
+              step: currentStep.step,
+              message: currentStep.message,
+              details: currentStep.details,
+              progress: currentStep.progress,
+              checkpoints,
+              sources: sources.map((s, index) => ({
+                ...s,
+                status: index < currentStepRef.current ? 'completed' as const : 
+                       index === currentStepRef.current ? 'active' as const : 'pending' as const
+              }))
+            });
+
+            currentStepRef.current++;
+          }
+          
+          // Continue polling
+          pollAttempts++;
+          if (pollAttempts < maxPollAttempts) {
+            progressTimerRef.current = setTimeout(pollStatus, 2000); // Poll every 2 seconds
+          } else {
+            console.warn('⚠️ Max poll attempts reached, fetching results anyway');
+            fetchResults(newRunId);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error polling status:', error);
+        pollAttempts++;
+        if (pollAttempts < maxPollAttempts) {
+          // Continue polling even on error
+          progressTimerRef.current = setTimeout(pollStatus, 2000);
+        } else {
+          setError('Failed to get pipeline status. Please try again.');
+          setIsSearching(false);
+        }
       }
     };
-
-    updateProgress();
+    
+    // Start polling
+    pollStatus();
   };
 
   const fetchResults = async (runId: string) => {
+    console.log('🔍 fetchResults called with runId:', runId);
+    console.log('🔍 runId type:', typeof runId);
+    console.log('🔍 runId is null?', runId === null);
+    console.log('🔍 runId is undefined?', runId === undefined);
+    
+    if (!runId || runId === 'null' || runId === 'undefined') {
+      console.error('❌ Invalid runId provided to fetchResults:', runId);
+      setError('Invalid run ID. Please try starting a new search.');
+      setIsSearching(false);
+      return;
+    }
+    
     try {
-      const results = await SourcingAPI.getRunResults('68daa41a2ddc4afb45298714', { limit: 50 });
+      console.log('🔍 Calling SourcingAPI.getRunResults with runId:', runId);
+      const results = await SourcingAPI.getRunResults(runId, { limit: 50 });
+      console.log('🔍 Results received:', results);
       setSuppliers(results.items);
       setShowResults(true);
       setIsSearching(false);
@@ -164,15 +217,39 @@ export function SupplierAgent() {
         50 // Max suppliers
       );
 
+      console.log('🔍 Full response from startAgentSearch:', response);
+      console.log('🔍 sourcing_run_id from response:', response.sourcing_run_id);
+      
       const newRunId = response.sourcing_run_id;
+      console.log('🔍 Setting runId to:', newRunId);
+      
+      // Validate we got a valid run ID
+      if (!newRunId || newRunId === 'null' || newRunId === 'undefined') {
+        console.error('❌ Invalid or missing run ID from API response');
+        setError('Failed to start supplier search. No run ID returned from server.');
+        setIsSearching(false);
+        return;
+      }
+      
       setRunId(newRunId);
 
-      // Start the timer-based progress animation
-      startProgressAnimation();
+      // Start the timer-based progress animation with the new run ID
+      startProgressAnimation(newRunId);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting search:', error);
-      setError('Failed to start supplier search. Please try again.');
+      
+      // Check if it's an authentication error
+      if (error.response?.status === 401) {
+        setError('Authentication required. Please log in to use supplier discovery.');
+      } else if (error.response?.status === 403) {
+        setError('You do not have permission to access supplier discovery.');
+      } else if (error.response?.data?.detail) {
+        setError(`Failed to start supplier search: ${error.response.data.detail}`);
+      } else {
+        setError('Failed to start supplier search. Please try again.');
+      }
+      
       setIsSearching(false);
     }
   };

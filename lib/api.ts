@@ -18,8 +18,14 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = TokenManager.getAccessToken();
+    console.log('🔍 TokenManager.getAccessToken():', token);
+    console.log('🔍 TokenManager.isAuthenticated():', TokenManager.isAuthenticated());
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔍 Added Authorization header:', `Bearer ${token.substring(0, 20)}...`);
+    } else {
+      console.log('❌ No token available - request will likely fail with 401');
     }
     
     // Debug logging for requests
